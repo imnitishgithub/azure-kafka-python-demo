@@ -1,0 +1,5 @@
+{
+    "EH_NAMESPACE": "demo-kafka-eh-12345",
+    "CONNECTION_STRING": "Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<key>",
+    "TOPIC": "demo-topic"
+}
