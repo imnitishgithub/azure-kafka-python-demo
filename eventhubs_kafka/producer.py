@@ -1,38 +1,50 @@
-import json
 from confluent_kafka import Producer
+import time
+import json
 
-# Load config
-with open("eventhubs_kafka/config.json") as f:
-    cfg = json.load(f)
+# ================================
+# Azure Event Hubs Kafka Settings
+# ================================
+bootstrap_servers = "kafka-eh-80f3d7.servicebus.windows.net:9093"
 
-EH_NAMESPACE = cfg["EH_NAMESPACE"]
-BOOTSTRAP_SERVER = f"{EH_NAMESPACE}.servicebus.windows.net:9093"
-SASL_USERNAME = "$ConnectionString"
-SASL_PASSWORD = cfg["CONNECTION_STRING"]
-TOPIC = cfg["TOPIC"]
-
-conf = {
-    "bootstrap.servers": BOOTSTRAP_SERVER,
+security_config = {
+    "bootstrap.servers": bootstrap_servers,
     "security.protocol": "SASL_SSL",
-    "sasl.mechanisms": "PLAIN",
-    "sasl.username": SASL_USERNAME,
-    "sasl.password": SASL_PASSWORD,
+    "sasl.mechanism": "PLAIN",
+    "sasl.username": "$ConnectionString",
+    "sasl.password": "Endpoint=sb://kafka-eh-80f3d7.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<YOUR-KEY-HERE>",
 }
 
-producer = Producer(conf)
+topic_name = "demo-topic"
 
+# Delivery callback
 def delivery_report(err, msg):
     if err is not None:
         print(f"Delivery failed: {err}")
     else:
-        print(f"Delivered to {msg.topic()} [{msg.partition()}] at offset {msg.offset()}")
+        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
 
-print("Producing 10 messages...")
+def run_producer():
+    print("Connecting to Azure Event Hubs Kafka...")
 
-for i in range(1, 11):
-    value = f"message-{i}"
-    producer.produce(TOPIC, value.encode(), callback=delivery_report)
-    producer.poll(0)
+    producer = Producer(security_config)
 
-producer.flush()
-print("Done.")
+    print("Producing 10 messages...")
+
+    for i in range(10):
+        data = {"message": f"Hello from Azure Kafka {i}", "id": i}
+
+        producer.produce(
+            topic_name,
+            json.dumps(data).encode("utf-8"),
+            callback=delivery_report
+        )
+
+        producer.poll(0)
+        time.sleep(0.5)
+
+    producer.flush()
+    print("Done.")
+
+if __name__ == "__main__":
+    run_producer()
