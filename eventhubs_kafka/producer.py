@@ -1,50 +1,33 @@
-from confluent_kafka import Producer
-import time
 import json
+import os
+import time
+from azure.eventhub import EventHubProducerClient, EventData
 
-# ================================
-# Azure Event Hubs Kafka Settings
-# ================================
-bootstrap_servers = "kafka-eh-80f3d7.servicebus.windows.net:9093"
+# Load config.json
+with open("config.json") as f:
+    config = json.load(f)
 
-security_config = {
-    "bootstrap.servers": bootstrap_servers,
-    "security.protocol": "SASL_SSL",
-    "sasl.mechanism": "PLAIN",
-    "sasl.username": "$ConnectionString",
-    "sasl.password": "Endpoint=sb://kafka-eh-80f3d7.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<YOUR-KEY-HERE>",
-}
+EH_NAMESPACE = config["EH_NAMESPACE"]
+CONNECTION_STRING = config["CONNECTION_STRING"]
+TOPIC = config["TOPIC"]
 
-topic_name = "demo-topic"
+# Build FQ endpoint for Kafka+EH
+EVENTHUB_FQDN = f"{EH_NAMESPACE}.servicebus.windows.net"
 
-# Delivery callback
-def delivery_report(err, msg):
-    if err is not None:
-        print(f"Delivery failed: {err}")
-    else:
-        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+producer = EventHubProducerClient.from_connection_string(
+    conn_str=CONNECTION_STRING,
+    eventhub_name=TOPIC
+)
 
-def run_producer():
-    print("Connecting to Azure Event Hubs Kafka...")
-
-    producer = Producer(security_config)
-
-    print("Producing 10 messages...")
-
-    for i in range(10):
-        data = {"message": f"Hello from Azure Kafka {i}", "id": i}
-
-        producer.produce(
-            topic_name,
-            json.dumps(data).encode("utf-8"),
-            callback=delivery_report
-        )
-
-        producer.poll(0)
-        time.sleep(0.5)
-
-    producer.flush()
-    print("Done.")
+def send_messages():
+    print(f"Producing messages to Azure Event Hub Kafka topic: {TOPIC}")
+    for i in range(20):
+        message = f"Hello message {i}"
+        event_data_batch = producer.create_batch()
+        event_data_batch.add(EventData(message))
+        producer.send_batch(event_data_batch)
+        print(f"Sent: {message}")
+        time.sleep(1)
 
 if __name__ == "__main__":
-    run_producer()
+    send_messages()
