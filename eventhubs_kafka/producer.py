@@ -1,33 +1,45 @@
-import json
 import os
-import time
-from azure.eventhub import EventHubProducerClient, EventData
+import json
+from confluent_kafka import Producer
 
 # Load config.json
-with open("config.json") as f:
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
+
+with open(CONFIG_PATH) as f:
     config = json.load(f)
 
-EH_NAMESPACE = config["EH_NAMESPACE"]
-CONNECTION_STRING = config["CONNECTION_STRING"]
-TOPIC = config["TOPIC"]
+bootstrap_servers = config["bootstrap_servers"]
+sasl_username = config["sasl_username"]
+sasl_password = config["sasl_password"]
+topic_name = config["topic_name"]
 
-# Build FQ endpoint for Kafka+EH
-EVENTHUB_FQDN = f"{EH_NAMESPACE}.servicebus.windows.net"
+kafka_config = {
+    "bootstrap.servers": bootstrap_servers,
+    "security.protocol": "SASL_SSL",
+    "sasl.mechanism": "PLAIN",
+    "sasl.username": sasl_username,
+    "sasl.password": sasl_password
+}
 
-producer = EventHubProducerClient.from_connection_string(
-    conn_str=CONNECTION_STRING,
-    eventhub_name=TOPIC
-)
+producer = Producer(kafka_config)
 
-def send_messages():
-    print(f"Producing messages to Azure Event Hub Kafka topic: {TOPIC}")
-    for i in range(20):
-        message = f"Hello message {i}"
-        event_data_batch = producer.create_batch()
-        event_data_batch.add(EventData(message))
-        producer.send_batch(event_data_batch)
-        print(f"Sent: {message}")
-        time.sleep(1)
+def delivery_report(err, msg):
+    if err:
+        print("Delivery failed:", err)
+    else:
+        print(f"Delivered message to {msg.topic()} [{msg.partition()}]")
 
-if __name__ == "__main__":
-    send_messages()
+print("Producing 10 Kafka messages...")
+
+for i in range(10):
+    producer.produce(
+        topic_name,
+        key=str(i),
+        value=f"Message {i} from Kafka Python producer",
+        callback=delivery_report
+    )
+    producer.poll(0)
+
+producer.flush()
+print("Done.")
