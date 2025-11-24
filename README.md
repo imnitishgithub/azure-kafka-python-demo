@@ -14,18 +14,20 @@ The demo uses:
 ## Below is the full repo structure, followed by the content of each file.
 
 azure-kafka-python-demo/
-│
 ├── README.md
 ├── .gitignore
 ├── requirements.txt
-│
 ├── eventhubs_kafka/
-│   ├── producer.py
-│   ├── consumer.py
-│   └── config_sample.json
-│
 └── scripts/
+  
+eventhubs_kafka/
+  ├── producer.py
+  ├── consumer.py
+  └── config_sample.json
+
+scripts/
     └── create_eventhubs.sh
+    
 ---
 
 
