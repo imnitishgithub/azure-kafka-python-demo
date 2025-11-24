@@ -1,0 +1,8 @@
+```gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+config.json
+eventhubs_kafka/config.json
