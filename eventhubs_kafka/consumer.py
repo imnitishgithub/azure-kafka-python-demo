@@ -1,47 +1,31 @@
-from confluent_kafka import Consumer, KafkaException
 import json
+import os
+from azure.eventhub import EventHubConsumerClient
 
-# ================================
-# Azure Event Hubs Kafka Settings
-# ================================
-bootstrap_servers = "kafka-eh-80f3d7.servicebus.windows.net:9093"
+# Load config.json
+with open("config.json") as f:
+    config = json.load(f)
 
-security_config = {
-    "bootstrap.servers": bootstrap_servers,
-    "security.protocol": "SASL_SSL",
-    "sasl.mechanism": "PLAIN",
-    "sasl.username": "$ConnectionString",
-    "sasl.password": "Endpoint=sb://kafka-eh-80f3d7.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<YOUR-KEY-HERE>",
-    "group.id": "demo-consumer-group",
-    "auto.offset.reset": "earliest",
-}
+EH_NAMESPACE = config["EH_NAMESPACE"]
+CONNECTION_STRING = config["CONNECTION_STRING"]
+TOPIC = config["TOPIC"]
 
-topic_name = "demo-topic"
+EVENTHUB_FQDN = f"{EH_NAMESPACE}.servicebus.windows.net"
 
-def run_consumer():
-    print("Starting Kafka consumer...")
+consumer = EventHubConsumerClient.from_connection_string(
+    conn_str=CONNECTION_STRING,
+    consumer_group="$Default",
+    eventhub_name=TOPIC
+)
 
-    consumer = Consumer(security_config)
-    consumer.subscribe([topic_name])
+def on_event(partition_context, event):
+    print(f"Received Event from partition {partition_context.partition_id}: {event.body_as_str()}")
+    partition_context.update_checkpoint(event)
 
-    try:
-        print("Listening for messages...")
-        while True:
-            msg = consumer.poll(1.0)
+print(f"Listening on Event Hub topic: {TOPIC}")
 
-            if msg is None:
-                continue
-            if msg.error():
-                raise KafkaException(msg.error())
-
-            message = msg.value().decode("utf-8")
-            print(f"Received: {message}")
-
-    except KeyboardInterrupt:
-        print("Stopping consumer...")
-
-    finally:
-        consumer.close()
-
-if __name__ == "__main__":
-    run_consumer()
+with consumer:
+    consumer.receive(
+        on_event=on_event,
+        starting_position="-1"   # read from earliest
+    )
