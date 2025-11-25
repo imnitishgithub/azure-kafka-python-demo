@@ -1,7 +1,7 @@
 {
     "bootstrap_servers": "kafka-eh-80f3d7.servicebus.windows.net:9093",
     "sasl_username": "$ConnectionString",
-    "sasl_password": "Endpoint=sb://kafka-eh-80f3d7.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YQYS3eTRJysQziaFCl5EpLEcJZdX4nawZ+AEhBTHwsI=",
+    "sasl_password": "Endpoint=sb://kafka-eh-80f3d7.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=+AEhBTHwsI=",
     "topic_name": "demo-topic",
     "consumer_group": "demo-consumer-group"
 }
